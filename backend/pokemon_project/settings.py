@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from urllib.parse import parse_qs, unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -70,12 +71,35 @@ CHANNEL_LAYERS = {
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.getenv("SQLITE_NAME", BASE_DIR / "db.sqlite3"),
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    parsed_database_url = urlparse(database_url)
+    database_options = {}
+    sslmode = parse_qs(parsed_database_url.query).get("sslmode")
+    if sslmode:
+        database_options["sslmode"] = sslmode[0]
+
+    default_database = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed_database_url.path.lstrip("/")),
+        "USER": unquote(parsed_database_url.username or ""),
+        "PASSWORD": unquote(parsed_database_url.password or ""),
+        "HOST": parsed_database_url.hostname or "",
+        "PORT": str(parsed_database_url.port or 5432),
     }
-}
+    if database_options:
+        default_database["OPTIONS"] = database_options
+else:
+    default_database = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "pokemon"),
+        "USER": os.getenv("POSTGRES_USER", "pokemon"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "pokemon"),
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+    }
+
+DATABASES = {"default": default_database}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

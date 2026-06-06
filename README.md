@@ -12,7 +12,7 @@ A full-stack web application that displays Pokemon as interactive markers on a m
 - **Search & Filter** — Search by name/location, filter by source (API vs uploaded) or favorites
 - **Real-time Energy** — WebSocket stream delivers energy readings every 3 seconds, calculated from live weather data (OpenWeather API with local fallback)
 - **Distance Calculation** — Compute Haversine distance from any Pokemon to UCLA campus
-- **Docker Deployment** — Single `docker compose up` with Nginx reverse proxy, Daphne ASGI server, and SQLite persistence
+- **Docker Deployment** — Single `docker compose up` with Nginx, Daphne, and PostgreSQL persistence
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ A full-stack web application that displays Pokemon as interactive markers on a m
 |-------|------------|
 | Frontend | React 18, Vite, Material-UI 5, Leaflet, React Router 6 |
 | Backend | Django 5, Django REST Framework, Django Channels, Daphne |
-| Database | SQLite |
+| Database | PostgreSQL 17 |
 | Infrastructure | Docker, Docker Compose, Nginx |
 
 ## Quick Start
@@ -29,6 +29,7 @@ A full-stack web application that displays Pokemon as interactive markers on a m
 
 - Python 3.12+
 - Node.js 20+
+- PostgreSQL 14+ for local backend development
 - (Optional) Docker & Docker Compose
 
 ### Local Development
@@ -42,7 +43,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# Edit .env — set DJANGO_SECRET_KEY and optionally OPENWEATHER_API_KEY
+# Edit .env — set DJANGO_SECRET_KEY, PostgreSQL credentials,
+# and optionally OPENWEATHER_API_KEY
 
 python manage.py migrate
 python manage.py import_pokemon          # fetch 100 Pokemon from PokeAPI
@@ -81,7 +83,7 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173), register an account, and st
 docker compose up --build
 ```
 
-The app is served at [http://localhost](http://localhost). Nginx proxies `/api/` and `/ws/` to the backend. The SQLite database is persisted in a Docker volume.
+The app is served at [http://localhost](http://localhost). Nginx proxies `/api/` and `/ws/` to the backend. PostgreSQL data is persisted in a Docker volume.
 
 Seed the database inside Docker:
 
@@ -100,7 +102,12 @@ docker compose exec backend python manage.py import_pokemon
 | `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | Comma-separated allowed hosts |
 | `CORS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,http://localhost:5173` | Comma-separated CORS origins |
 | `OPENWEATHER_API_KEY` | — | For live weather in energy stream (optional — falls back to local snapshot) |
-| `SQLITE_NAME` | — | Custom SQLite database path (optional) |
+| `DATABASE_URL` | — | Managed PostgreSQL connection URL; overrides the `POSTGRES_*` variables |
+| `POSTGRES_DB` | `pokemon` | PostgreSQL database name |
+| `POSTGRES_USER` | `pokemon` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | `pokemon` | PostgreSQL password |
+| `POSTGRES_HOST` | `127.0.0.1` | PostgreSQL hostname (`db` in Docker) |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
 
 ### Frontend (`frontend/.env`)
 

@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import random
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -44,7 +45,7 @@ class PokemonUploadError(Exception):
     pass
 
 
-def fetch_json(url, timeout=15):
+def fetch_json(url, timeout=15, attempts=3):
     request = urllib.request.Request(
         url,
         headers={
@@ -52,11 +53,20 @@ def fetch_json(url, timeout=15):
             "User-Agent": "pokemon-finder-lab/1.0",
         },
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.URLError as exc:
-        raise PokeApiError(f"Failed to fetch {url}: {exc}") from exc
+    last_error = None
+
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(attempt)
+
+    raise PokeApiError(
+        f"Failed to fetch {url} after {attempts} attempts: {last_error}"
+    ) from last_error
 
 
 def fetch_pokemon_page(limit=100, offset=0, timeout=15):
